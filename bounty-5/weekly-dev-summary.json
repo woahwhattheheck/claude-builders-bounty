@@ -59,7 +59,7 @@
             {
               "id": "586ca8f2-7e70-4cff-a7a0-e6c5b256edd7",
               "name": "claudeModel",
-              "value": "claude-sonnet-4-20250514",
+              "value": "claude-sonnet-5",
               "type": "string"
             }
           ]
