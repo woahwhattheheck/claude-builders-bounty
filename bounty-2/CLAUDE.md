@@ -156,7 +156,7 @@ Throw unexpected infrastructure/programmer errors so error boundaries and observ
 
 ## 9. Authentication and authorization
 
-Session presence is authentication, not authorization. Centralize session loading under `src/server.auth`. Put resource authorization near the relevant query/mutation and recheck it inside every mutation. Never trust hidden fields, disabled buttons, middleware redirects, or client state as authorization.
+Session presence is authentication, not authorization. Centralize session loading under `src/server/auth`. Put resource authorization near the relevant query/mutation and recheck it inside every mutation. Never trust hidden fields, disabled buttons, middleware redirects, or client state as authorization.
 
 Use secure, HTTP-only, same-site cookies. Never expose session tokens through `NEXT_PUBLIC_*`. Hash one-time tokens at rest and compare in constant time. Verify webhook signatures against the raw request body before parsing or mutating data. Rate-limit login, invite, reset, and expensive public endpoints.
 
