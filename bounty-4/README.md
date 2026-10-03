@@ -91,6 +91,8 @@ confidence when the omitted context may matter.
 PR titles, metadata, filenames, and diff contents are treated as untrusted.
 The prompt explicitly forbids following instructions embedded in the diff.
 Shell execution is avoided for both GitHub access and Claude invocation.
+The PR payload is passed over stdin, so large diffs do not enter the process
+argument list.
 
 `--post` is opt-in. A normal review only prints Markdown; it never mutates the
 target repository.
