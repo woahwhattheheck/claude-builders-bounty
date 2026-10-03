@@ -17,7 +17,6 @@ SQL_CLIENTS = {
     "isql", "clickhouse-client",
 }
 WRAPPERS = {"sudo", "doas", "command", "nohup", "env"}
-CHAIN_RE = re.compile(r"&&|\|\||;|\n|(?<!\|)\|(?!\|)")
 DROP_RE = re.compile(r"\bDROP\s+TABLE\b", re.IGNORECASE)
 TRUNCATE_RE = re.compile(r"\bTRUNCATE\b", re.IGNORECASE)
 DELETE_RE = re.compile(r"\bDELETE\s+FROM\b", re.IGNORECASE)
@@ -29,6 +28,27 @@ def split_tokens(text):
         return shlex.split(text, posix=True)
     except ValueError:
         return text.strip().split()
+
+
+def shell_segments(command):
+    """Split shell operators only when outside quotes and backslash escapes."""
+    quote = None
+    escaped = False
+    start = 0
+    for index, char in enumerate(command):
+        if escaped:
+            escaped = False
+        elif char == "\\" and quote != "'":
+            escaped = True
+        elif char in ("'", '"'):
+            if quote is None:
+                quote = char
+            elif quote == char:
+                quote = None
+        elif quote is None and char in ";&|\n":
+            yield command[start:index]
+            start = index + 1
+    yield command[start:]
 
 
 def unwrap(tokens):
@@ -64,9 +84,10 @@ def sql_reason(command, tokens):
         return "Blocked DROP TABLE because it irreversibly removes schema and data."
     if TRUNCATE_RE.search(command):
         return "Blocked SQL TRUNCATE because it irreversibly removes all table rows."
-    delete = DELETE_RE.search(command)
-    if delete and not WHERE_RE.search(command[delete.end():]):
-        return "Blocked DELETE FROM without a WHERE clause because it would remove every matching row."
+    for statement in command.split(";"):
+        delete = DELETE_RE.search(statement)
+        if delete and not WHERE_RE.search(statement[delete.end():]):
+            return "Blocked DELETE FROM without a WHERE clause because it would remove every matching row."
     return None
 
 
@@ -119,16 +140,14 @@ def classify(command):
     if not isinstance(command, str) or not command.strip():
         return None
 
-    full_tokens = split_tokens(command)
-    reason = sql_reason(command, full_tokens)
-    if reason:
-        return reason
-
-    for segment in CHAIN_RE.split(command):
+    for segment in shell_segments(command):
         segment = segment.strip()
         if not segment:
             continue
         tokens = split_tokens(segment)
+        reason = sql_reason(segment, tokens)
+        if reason:
+            return reason
         for check in (rm_reason, git_reason, nested_shell_reason):
             reason = check(tokens)
             if reason:
