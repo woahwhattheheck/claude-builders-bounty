@@ -137,7 +137,7 @@ def main():
             f"  Logged to:    ~/.claude/hooks/blocked.log\n\n"
             f"Action Required: If this operation is intentional, please execute it manually outside Claude Code.\n\n"
         )
-        sys.exit(1)
+        sys.exit(2)
 
     sys.exit(0)
 
