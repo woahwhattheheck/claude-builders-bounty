@@ -51,7 +51,10 @@ def generate(repo, since=None):
     history = git(repo, 'log', '--no-merges', '--reverse', '--format=%H%x00%s',
                   (boundary + '..' if boundary else '') + head).stdout
     sections = {name: [] for name in CATEGORIES}
-    for record in history.splitlines():
+    # Git separates records with LF; Unicode separators can be subject text.
+    for record in history.split('\n'):
+        if not record:
+            continue
         commit, subject = record.split('\0', 1)
         sections[category(subject)].append(f'- {markdown(subject)} (`{commit[:12]}`)')
     label = f'Commits since {markdown(since)}' if since else 'All reachable commits (no release tags)'
