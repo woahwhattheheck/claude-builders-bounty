@@ -12,8 +12,8 @@ import sys
 from datetime import datetime
 from collections import defaultdict
 
-def run_git(cmd):
-    """Run a git command and return stripped stdout string."""
+def run_git(cmd, allow_failure=False):
+    """Return Git stdout; required command failures remain errors."""
     try:
         res = subprocess.run(
             ["git"] + cmd,
@@ -23,12 +23,16 @@ def run_git(cmd):
             check=True
         )
         return res.stdout.strip()
-    except subprocess.CalledProcessError:
-        return ""
+    except subprocess.CalledProcessError as exc:
+        if allow_failure:
+            return ""
+        detail = (exc.stderr or "").strip()
+        print(f"[!] git {cmd[0]} failed (exit {exc.returncode}): {detail}", file=sys.stderr)
+        sys.exit(exc.returncode)
 
 def get_latest_tag():
     """Retrieve the most recent tag in repository."""
-    tag = run_git(["describe", "--tags", "--abbrev=0"])
+    tag = run_git(["describe", "--tags", "--abbrev=0"], allow_failure=True)
     if not tag:
         # Fallback to latest tag in tag list if describe fails
         tags = run_git(["tag", "--sort=-creatordate"]).splitlines()
