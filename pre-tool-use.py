@@ -72,10 +72,14 @@ def check_command(command_str: str) -> tuple[bool, str]:
         return True, "Database truncation ('TRUNCATE TABLE') detected."
 
     # 5. SQL DELETE FROM without WHERE clause
-    del_match = re.search(r'\bdelete\s+from\s+[\w`"\'\.]+(.*)', cmd, re.IGNORECASE | re.DOTALL)
-    if del_match:
-        clause_remainder = del_match.group(1).strip()
-        # If there is no 'WHERE' keyword in the remainder
+    # Evaluate every DELETE against its own SQL statement. A WHERE in a later
+    # semicolon-delimited statement must not make an earlier unbounded delete safe.
+    delete_pattern = re.compile(
+        r'\bdelete\s+from\s+[\w"\'\.\x60]+(?P<remainder>[^;]*)',
+        re.IGNORECASE | re.DOTALL,
+    )
+    for del_match in delete_pattern.finditer(cmd):
+        clause_remainder = del_match.group("remainder").strip()
         if not re.search(r'\bwhere\b', clause_remainder, re.IGNORECASE):
             return True, "Unbounded table deletion ('DELETE FROM' without WHERE clause) detected."
 
