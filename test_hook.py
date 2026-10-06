@@ -44,7 +44,9 @@ def test_blocked_commands():
         # DELETE FROM without WHERE
         "DELETE FROM users;",
         "DELETE FROM sessions",
-        "delete from temporary_data;"
+        "delete from temporary_data;",
+        # A WHERE in a later SQL statement must not make the earlier DELETE safe.
+        "DELETE FROM users; DELETE FROM sessions WHERE id = 42;"
     ]
 
     print("Running DANGEROUS command tests...")
